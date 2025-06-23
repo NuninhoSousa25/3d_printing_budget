@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Printing Cost Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .section {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        .input-group {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        label {
+            width: 250px;
+            display: inline-block;
+        }
+        input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            width: 100px;
+        }
+        .time-input {
+            display: flex;
+            align-items: center;
+        }
+        .time-input input {
+            width: 45px;
+            margin-right: 5px;
+        }
+        .time-input span {
+            margin-right: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .result {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .export-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f0f8ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>3D Printing Cost Calculator</h1>
+
+    <div class="section">
+        <h2>Global Parameters</h2>
+        <div class="input-group">
+            <label for="materialCost">Material cost per kg ($):</label>
+            <input type="number" id="materialCost" value="22.00" step="0.01">
+        </div>
+        <div class="input-group">
+            <label for="shippingCost">Shipping cost per kg ($):</label>
+            <input type="number" id="shippingCost" value="00.00" step="0.01">
+        </div>
+        <div class="input-group">
+            <label for="totalMaterialCost">Total material cost per kg ($):</label>
+            <input type="number" id="totalMaterialCost" value="126.32" disabled>
+        </div>
+        <div class="input-group">
+            <label for="printerCost">Printer operating cost per hour ($):</label>
+            <input type="number" id="printerCost" value="0.5" step="0.01">
+        </div>
+        <div class="input-group">
+            <label for="laborRate">Technical work rate per hour ($):</label>
+            <input type="number" id="laborRate" value="15" step="0.5">
+        </div>
+        <div class="input-group">
+            <label for="taxRate">Tax rate (%):</label>
+            <input type="number" id="taxRate" value="23" step="0.1">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Parts Information</h2>
+        <table id="partsTable">
+            <thead>
+                <tr>
+                    <th>Part Name</th>
+                    <th>Quantity</th>
+                    <th>Material Weight (g)</th>
+                    <th>Print Time</th>
+                    <th>Technical Work Time (minutes)</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Part A</td>
+                    <td><input type="number" class="quantity" value="1" min="1" step="1"></td>
+                    <td><input type="number" class="weight" value="100" step="0.01"></td>
+                    <td class="print-time-cell">
+                        <div class="time-input">
+                            <input type="number" class="printHours" value="1" min="0" step="1">
+                            <span>h</span>
+                            <input type="number" class="printMinutes" value="30" min="0" max="59" step="1">
+                            <span>m</span>
+                        </div>
+                        <input type="hidden" class="printTime" value="90">
+                    </td>
+                    <td><input type="number" class="techTime" value="3" step="0.5"></td>
+                    <td><button onclick="removePart(this)">Remove</button></td>
+                </tr>
+            </tbody>
+        </table>
+        <button onclick="addPart()">Add Part</button>
+    </div>
+
+    <div class="section">
+        <h2>Cost Breakdown</h2>
+        <div id="costBreakdown">
+            <table id="costTable">
+                <thead>
+                    <tr>
+                        <th>Part Name</th>
+                        <th>Quantity</th>
+                        <th>Material Cost ($)</th>
+                        <th>Printer Cost ($)</th>
+                        <th>Labor Cost ($)</th>
+                        <th>Cost Per Unit ($)</th>
+                        <th>Total Cost ($)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="2">Subtotal</td>
+                        <td id="subtotalMaterial">0.00</td>
+                        <td id="subtotalPrinter">0.00</td>
+                        <td id="subtotalLabor">0.00</td>
+                        <td></td>
+                        <td id="subtotalCost">0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="6">Tax</td>
+                        <td id="taxTotal">0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="6">Total with Tax</td>
+                        <td id="grandTotal">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Summary</h2>
+        <div class="input-group">
+            <label>Total Manufacturing Cost ($):</label>
+            <span id="totalManufacturing" class="result">0.00</span>
+        </div>
+        <div class="input-group">
+            <label>Tax Amount ($):</label>
+            <span id="taxAmount" class="result">0.00</span>
+        </div>
+        <div class="input-group">
+            <label>Total Cost with Tax ($):</label>
+            <span id="totalCost" class="result">0.00</span>
+        </div>
+        <div class="input-group">
+            <label>Total Weight (g):</label>
+            <span id="totalWeight" class="result">0.00</span>
+        </div>
+        <div class="input-group">
+            <label>Total Print Time:</label>
+            <span id="totalPrintTime" class="result">0 hours 0 minutes</span>
+        </div>
+        <div class="input-group">
+            <label>Cost per Gram ($):</label>
+            <span id="costPerGram" class="result">0.00</span>
+        </div>
+        <div class="input-group">
+            <label>Cost per Minute of Printing ($):</label>
+            <span id="costPerMinute" class="result">0.00</span>
+        </div>
+    </div>
+
+    <button class="export-button" onclick="exportToCSV()">Export to CSV</button>
+
+    <script>
+        // Initialize the calculator
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up event listeners for global parameters
+            document.getElementById('materialCost').addEventListener('input', updateCalculations);
+            document.getElementById('shippingCost').addEventListener('input', updateCalculations);
+            document.getElementById('printerCost').addEventListener('input', updateCalculations);
+            document.getElementById('laborRate').addEventListener('input', updateCalculations);
+            document.getElementById('taxRate').addEventListener('input', updateCalculations);
+            
+            // Set up event listeners for all part inputs
+            setupPartInputListeners();
+            
+            // Convert initial print time to hours and minutes
+            convertInitialPrintTimes();
+            
+            // Initial calculation
+            updateCalculations();
+        });
+        
+        // Convert initial print times from minutes to hours and minutes
+        function convertInitialPrintTimes() {
+            const rows = document.querySelectorAll('#partsTable tbody tr');
+            rows.forEach(row => {
+                const printTimeInput = row.querySelector('.printTime');
+                const printHoursInput = row.querySelector('.printHours');
+                const printMinutesInput = row.querySelector('.printMinutes');
+                
+                if (printTimeInput && printHoursInput && printMinutesInput) {
+                    const totalMinutes = parseInt(printTimeInput.value) || 0;
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    
+                    printHoursInput.value = hours;
+                    printMinutesInput.value = minutes;
+                }
+            });
+        }
+        
+        // Setup input listeners for all part inputs
+        function setupPartInputListeners() {
+            // Listen for quantity, weight, and tech time inputs
+            const inputs = document.querySelectorAll('#partsTable input.quantity, #partsTable input.weight, #partsTable input.techTime');
+            inputs.forEach(input => {
+                input.addEventListener('input', updateCalculations);
+            });
+            
+            // Listen for print hours and minutes inputs
+            const timeInputs = document.querySelectorAll('#partsTable input.printHours, #partsTable input.printMinutes');
+            timeInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    updatePrintTimeValue(this);
+                    updateCalculations();
+                });
+            });
+        }
+        
+        // Update hidden print time value when hours or minutes change
+        function updatePrintTimeValue(inputElement) {
+            const row = inputElement.closest('tr');
+            const hoursInput = row.querySelector('.printHours');
+            const minutesInput = row.querySelector('.printMinutes');
+            const printTimeInput = row.querySelector('.printTime');
+            
+            if (hoursInput && minutesInput && printTimeInput) {
+                const hours = parseInt(hoursInput.value) || 0;
+                const minutes = parseInt(minutesInput.value) || 0;
+                
+                // Calculate total minutes
+                const totalMinutes = (hours * 60) + minutes;
+                printTimeInput.value = totalMinutes;
+            }
+        }
+
+        // Update all calculations
+        function updateCalculations() {
+            // Get global parameters
+            const materialCost = parseFloat(document.getElementById('materialCost').value);
+            const shippingCost = parseFloat(document.getElementById('shippingCost').value);
+            const totalMaterialCost = materialCost + shippingCost;
+            document.getElementById('totalMaterialCost').value = totalMaterialCost.toFixed(2);
+            
+            const printerCost = parseFloat(document.getElementById('printerCost').value);
+            const laborRate = parseFloat(document.getElementById('laborRate').value);
+            const taxRate = parseFloat(document.getElementById('taxRate').value) / 100;
+            
+            // Update cost breakdown table
+            const costTableBody = document.querySelector('#costTable tbody');
+            costTableBody.innerHTML = '';
+            
+            let totalManufacturingCost = 0;
+            let totalWeight = 0;
+            let totalPrintTimeMinutes = 0;
+            let totalMaterialCostSum = 0;
+            let totalPrinterCostSum = 0;
+            let totalLaborCostSum = 0;
+            
+            // Process each part
+            const rows = document.querySelectorAll('#partsTable tbody tr');
+            rows.forEach(row => {
+                const partName = row.cells[0].textContent;
+                const quantity = parseInt(row.querySelector('.quantity').value) || 1;
+                const weight = parseFloat(row.querySelector('.weight').value) || 0;
+                const printTime = parseFloat(row.querySelector('.printTime').value) || 0;
+                const techTime = parseFloat(row.querySelector('.techTime').value) || 0;
+                
+                // Calculate costs per unit
+                const materialCostPart = totalMaterialCost * weight / 1000;
+                const printerCostPart = printerCost * printTime / 60;
+                const laborCostPart = laborRate * techTime / 60;
+                const totalPartCostPerUnit = materialCostPart + printerCostPart + laborCostPart;
+                const totalPartCost = totalPartCostPerUnit * quantity;
+                
+                // Add to running totals
+                totalManufacturingCost += totalPartCost;
+                totalWeight += weight * quantity;
+                totalPrintTimeMinutes += printTime * quantity;
+                totalMaterialCostSum += materialCostPart * quantity;
+                totalPrinterCostSum += printerCostPart * quantity;
+                totalLaborCostSum += laborCostPart * quantity;
+                
+                // Add row to cost table
+                const costRow = document.createElement('tr');
+                costRow.innerHTML = `
+                    <td>${partName}</td>
+                    <td>${quantity}</td>
+                    <td>${(materialCostPart * quantity).toFixed(2)}</td>
+                    <td>${(printerCostPart * quantity).toFixed(2)}</td>
+                    <td>${(laborCostPart * quantity).toFixed(2)}</td>
+                    <td>${totalPartCostPerUnit.toFixed(2)}</td>
+                    <td>${totalPartCost.toFixed(2)}</td>
+                `;
+                costTableBody.appendChild(costRow);
+            });
+            
+            // Calculate summary values
+            const taxAmount = totalManufacturingCost * taxRate;
+            const totalCost = totalManufacturingCost + taxAmount;
+            const costPerGram = totalWeight > 0 ? totalManufacturingCost / totalWeight : 0;
+            const costPerMinute = totalPrintTimeMinutes > 0 ? totalManufacturingCost / totalPrintTimeMinutes : 0;
+            
+            // Format print time
+            const hours = Math.floor(totalPrintTimeMinutes / 60);
+            const minutes = Math.round(totalPrintTimeMinutes % 60);
+            const printTimeFormatted = `${hours} hours ${minutes} minutes`;
+            
+            // Update cost table summary
+            document.getElementById('subtotalMaterial').textContent = totalMaterialCostSum.toFixed(2);
+            document.getElementById('subtotalPrinter').textContent = totalPrinterCostSum.toFixed(2);
+            document.getElementById('subtotalLabor').textContent = totalLaborCostSum.toFixed(2);
+            document.getElementById('subtotalCost').textContent = totalManufacturingCost.toFixed(2);
+            document.getElementById('taxTotal').textContent = taxAmount.toFixed(2);
+            document.getElementById('grandTotal').textContent = totalCost.toFixed(2);
+            
+            // Update summary display
+            document.getElementById('totalManufacturing').textContent = totalManufacturingCost.toFixed(2);
+            document.getElementById('taxAmount').textContent = taxAmount.toFixed(2);
+            document.getElementById('totalCost').textContent = totalCost.toFixed(2);
+            document.getElementById('totalWeight').textContent = totalWeight.toFixed(2);
+            document.getElementById('totalPrintTime').textContent = printTimeFormatted;
+            document.getElementById('costPerGram').textContent = costPerGram.toFixed(4);
+            document.getElementById('costPerMinute').textContent = costPerMinute.toFixed(4);
+        }
+        
+        // Add a new part row
+        function addPart() {
+            const tbody = document.querySelector('#partsTable tbody');
+            const newRow = document.createElement('tr');
+            const partNumber = tbody.children.length + 1;
+            
+            newRow.innerHTML = `
+                <td>Part ${partNumber}</td>
+                <td><input type="number" class="quantity" value="1" min="1" step="1"></td>
+                <td><input type="number" class="weight" value="0" step="0.01"></td>
+                <td class="print-time-cell">
+                    <div class="time-input">
+                        <input type="number" class="printHours" value="0" min="0" step="1">
+                        <span>h</span>
+                        <input type="number" class="printMinutes" value="0" min="0" max="59" step="1">
+                        <span>m</span>
+                    </div>
+                    <input type="hidden" class="printTime" value="0">
+                </td>
+                <td><input type="number" class="techTime" value="3" step="0.5"></td>
+                <td><button onclick="removePart(this)">Remove</button></td>
+            `;
+            
+            tbody.appendChild(newRow);
+            
+            // Add event listeners to new inputs
+            const inputs = newRow.querySelectorAll('.quantity, .weight, .techTime');
+            inputs.forEach(input => {
+                input.addEventListener('input', updateCalculations);
+            });
+            
+            // Add event listeners to print time inputs
+            const timeInputs = newRow.querySelectorAll('.printHours, .printMinutes');
+            timeInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    updatePrintTimeValue(this);
+                    updateCalculations();
+                });
+            });
+            
+            // Update calculations with new part
+            updateCalculations();
+        }
+        
+        // Remove a part row
+        function removePart(button) {
+            const row = button.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+            updateCalculations();
+        }
+        
+        // Export data to CSV
+        function exportToCSV() {
+            // Get global parameters
+            const materialCost = parseFloat(document.getElementById('materialCost').value);
+            const shippingCost = parseFloat(document.getElementById('shippingCost').value);
+            const totalMaterialCost = materialCost + shippingCost;
+            const printerCost = parseFloat(document.getElementById('printerCost').value);
+            const laborRate = parseFloat(document.getElementById('laborRate').value);
+            const taxRate = parseFloat(document.getElementById('taxRate').value);
+            
+            // Create CSV header
+            let csv = "3D Printing Cost Calculator\n\n";
+            csv += "Global Parameters\n";
+            csv += `Material cost per kg ($),${materialCost}\n`;
+            csv += `Shipping cost per kg ($),${shippingCost}\n`;
+            csv += `Total material cost per kg ($),${totalMaterialCost}\n`;
+            csv += `Printer operating cost per hour ($),${printerCost}\n`;
+            csv += `Technical work rate per hour ($),${laborRate}\n`;
+            csv += `Tax rate (%),${taxRate}\n\n`;
+            
+            // Parts information
+            csv += "Parts Information\n";
+            csv += "Part Name,Quantity,Material Weight (g),Print Time (hours:minutes),Technical Work Time (minutes)\n";
+            
+            const rows = document.querySelectorAll('#partsTable tbody tr');
+            rows.forEach(row => {
+                const partName = row.cells[0].textContent;
+                const quantity = parseInt(row.querySelector('.quantity').value) || 1;
+                const weight = parseFloat(row.querySelector('.weight').value) || 0;
+                const printTimeMinutes = parseFloat(row.querySelector('.printTime').value) || 0;
+                const printHours = Math.floor(printTimeMinutes / 60);
+                const printMinutes = printTimeMinutes % 60;
+                const printTimeFormatted = `${printHours}:${printMinutes.toString().padStart(2, '0')}`;
+                const techTime = parseFloat(row.querySelector('.techTime').value) || 0;
+                
+                csv += `${partName},${quantity},${weight},${printTimeFormatted},${techTime}\n`;
+            });
+            
+            csv += "\nCost Breakdown\n";
+            csv += "Part Name,Quantity,Material Cost ($),Printer Cost ($),Labor Cost ($),Cost Per Unit ($),Total Cost ($)\n";
+            
+            const costRows = document.querySelectorAll('#costTable tbody tr');
+            costRows.forEach(row => {
+                const partName = row.cells[0].textContent;
+                const quantity = row.cells[1].textContent;
+                const materialCost = row.cells[2].textContent;
+                const printerCost = row.cells[3].textContent;
+                const laborCost = row.cells[4].textContent;
+                const unitCost = row.cells[5].textContent;
+                const total = row.cells[6].textContent;
+                
+                csv += `${partName},${quantity},${materialCost},${printerCost},${laborCost},${unitCost},${total}\n`;
+            });
+            
+            csv += `Subtotal,,${document.getElementById('subtotalMaterial').textContent},${document.getElementById('subtotalPrinter').textContent},${document.getElementById('subtotalLabor').textContent},,${document.getElementById('subtotalCost').textContent}\n`;
+            csv += `Tax,,,,,,${document.getElementById('taxTotal').textContent}\n`;
+            csv += `Total with Tax,,,,,,${document.getElementById('grandTotal').textContent}\n`;
+            
+            csv += "\nSummary\n";
+            csv += `Total Manufacturing Cost ($),${document.getElementById('totalManufacturing').textContent}\n`;
+            csv += `Tax Amount ($),${document.getElementById('taxAmount').textContent}\n`;
+            csv += `Total Cost with Tax ($),${document.getElementById('totalCost').textContent}\n`;
+            csv += `Total Weight (g),${document.getElementById('totalWeight').textContent}\n`;
+            csv += `Total Print Time,${document.getElementById('totalPrintTime').textContent}\n`;
+            csv += `Cost per Gram ($),${document.getElementById('costPerGram').textContent}\n`;
+            csv += `Cost per Minute of Printing ($),${document.getElementById('costPerMinute').textContent}\n`;
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', '3D_Printing_Calculator.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
