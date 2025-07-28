@@ -348,17 +348,17 @@
             document.getElementById('printerCost').addEventListener('input', updateCalculations);
             document.getElementById('laborRate').addEventListener('input', updateCalculations);
             document.getElementById('taxRate').addEventListener('input', updateCalculations);
-            
+
             // Set up event listeners for all part inputs
             setupPartInputListeners();
-            
+
             // Convert initial print time to hours and minutes
             convertInitialPrintTimes();
-            
+
             // Initial calculation
             updateCalculations();
         });
-        
+
         // Convert initial print times from minutes to hours and minutes
         function convertInitialPrintTimes() {
             const rows = document.querySelectorAll('#partsTable tbody tr');
@@ -366,18 +366,18 @@
                 const printTimeInput = row.querySelector('.printTime');
                 const printHoursInput = row.querySelector('.printHours');
                 const printMinutesInput = row.querySelector('.printMinutes');
-                
+
                 if (printTimeInput && printHoursInput && printMinutesInput) {
                     const totalMinutes = parseInt(printTimeInput.value) || 0;
                     const hours = Math.floor(totalMinutes / 60);
                     const minutes = totalMinutes % 60;
-                    
+
                     printHoursInput.value = hours;
                     printMinutesInput.value = minutes;
                 }
             });
         }
-        
+
         // Setup input listeners for all part inputs
         function setupPartInputListeners() {
             // Listen for quantity, weight, tech time, and part name inputs
@@ -385,7 +385,7 @@
             inputs.forEach(input => {
                 input.addEventListener('input', updateCalculations);
             });
-            
+
             // Listen for print hours and minutes inputs
             const timeInputs = document.querySelectorAll('#partsTable input.printHours, #partsTable input.printMinutes');
             timeInputs.forEach(input => {
@@ -395,18 +395,18 @@
                 });
             });
         }
-        
+
         // Update hidden print time value when hours or minutes change
         function updatePrintTimeValue(inputElement) {
             const row = inputElement.closest('tr');
             const hoursInput = row.querySelector('.printHours');
             const minutesInput = row.querySelector('.printMinutes');
             const printTimeInput = row.querySelector('.printTime');
-            
+
             if (hoursInput && minutesInput && printTimeInput) {
                 const hours = parseInt(hoursInput.value) || 0;
                 const minutes = parseInt(minutesInput.value) || 0;
-                
+
                 // Calculate total minutes
                 const totalMinutes = (hours * 60) + minutes;
                 printTimeInput.value = totalMinutes;
@@ -420,22 +420,23 @@
             const shippingCost = parseFloat(document.getElementById('shippingCost').value);
             const totalMaterialCost = materialCost + shippingCost;
             document.getElementById('totalMaterialCost').value = totalMaterialCost.toFixed(2);
-            
+
             const printerCost = parseFloat(document.getElementById('printerCost').value);
             const laborRate = parseFloat(document.getElementById('laborRate').value);
             const taxRate = parseFloat(document.getElementById('taxRate').value) / 100;
-            
+
             // Update cost breakdown table
             const costTableBody = document.querySelector('#costTable tbody');
             costTableBody.innerHTML = '';
-            
+
             let totalManufacturingCost = 0;
             let totalWeight = 0;
             let totalPrintTimeMinutes = 0;
+            let totalTechTimeMinutes = 0;
             let totalMaterialCostSum = 0;
             let totalPrinterCostSum = 0;
             let totalLaborCostSum = 0;
-            
+
             // Process each part
             const rows = document.querySelectorAll('#partsTable tbody tr');
             rows.forEach(row => {
@@ -445,22 +446,23 @@
                 const weight = parseFloat(row.querySelector('.weight').value) || 0;
                 const printTime = parseFloat(row.querySelector('.printTime').value) || 0;
                 const techTime = parseFloat(row.querySelector('.techTime').value) || 0;
-                
+
                 // Calculate costs per unit
                 const materialCostPart = totalMaterialCost * weight / 1000;
                 const printerCostPart = printerCost * printTime / 60;
                 const laborCostPart = laborRate * techTime / 60;
                 const totalPartCostPerUnit = materialCostPart + printerCostPart + laborCostPart;
                 const totalPartCost = totalPartCostPerUnit * quantity;
-                
+
                 // Add to running totals
                 totalManufacturingCost += totalPartCost;
                 totalWeight += weight * quantity;
                 totalPrintTimeMinutes += printTime * quantity;
+                totalTechTimeMinutes += techTime * quantity;
                 totalMaterialCostSum += materialCostPart * quantity;
                 totalPrinterCostSum += printerCostPart * quantity;
                 totalLaborCostSum += laborCostPart * quantity;
-                
+
                 // Add row to cost table
                 const costRow = document.createElement('tr');
                 costRow.innerHTML = `
@@ -474,18 +476,23 @@
                 `;
                 costTableBody.appendChild(costRow);
             });
-            
+
             // Calculate summary values
             const taxAmount = totalManufacturingCost * taxRate;
             const totalCost = totalManufacturingCost + taxAmount;
             const costPerGram = totalWeight > 0 ? totalManufacturingCost / totalWeight : 0;
             const costPerMinute = totalPrintTimeMinutes > 0 ? totalManufacturingCost / totalPrintTimeMinutes : 0;
-            
+
             // Format print time
             const hours = Math.floor(totalPrintTimeMinutes / 60);
             const minutes = Math.round(totalPrintTimeMinutes % 60);
             const printTimeFormatted = `${hours} hours ${minutes} minutes`;
-            
+
+            // Format technical work time
+            const techHours = Math.floor(totalTechTimeMinutes / 60);
+            const techMinutes = Math.round(totalTechTimeMinutes % 60);
+            const techTimeFormatted = `${techHours} hours ${techMinutes} minutes`;
+
             // Update cost table summary
             document.getElementById('subtotalMaterial').textContent = totalMaterialCostSum.toFixed(2);
             document.getElementById('subtotalPrinter').textContent = totalPrinterCostSum.toFixed(2);
@@ -493,23 +500,25 @@
             document.getElementById('subtotalCost').textContent = totalManufacturingCost.toFixed(2);
             document.getElementById('taxTotal').textContent = taxAmount.toFixed(2);
             document.getElementById('grandTotal').textContent = totalCost.toFixed(2);
-            
+
             // Update summary display
+            document.getElementById('totalManufacturing').textContent = totalManufacturingCost.toFixed(2);
             document.getElementById('totalManufacturing').textContent = totalManufacturingCost.toFixed(2);
             document.getElementById('taxAmount').textContent = taxAmount.toFixed(2);
             document.getElementById('totalCost').textContent = totalCost.toFixed(2);
             document.getElementById('totalWeight').textContent = totalWeight.toFixed(2);
             document.getElementById('totalPrintTime').textContent = printTimeFormatted;
+            document.getElementById('totalTechnicalWork').textContent = techTimeFormatted; // Updated line
             document.getElementById('costPerGram').textContent = costPerGram.toFixed(4);
             document.getElementById('costPerMinute').textContent = costPerMinute.toFixed(4);
         }
-        
+
         // Add a new part row
         function addPart() {
             const tbody = document.querySelector('#partsTable tbody');
             const newRow = document.createElement('tr');
             const partNumber = tbody.children.length + 1;
-            
+
             newRow.innerHTML = `
                 <td><input type="text" class="part-name" value="Part ${partNumber}" placeholder="Part name..."></td>
                 <td><input type="number" class="quantity" value="1" min="1" step="1"></td>
@@ -526,15 +535,15 @@
                 <td><input type="number" class="techTime" value="3" step="0.5"></td>
                 <td><button onclick="removePart(this)">Remove</button></td>
             `;
-            
+
             tbody.appendChild(newRow);
-            
+
             // Add event listeners to new inputs
             const inputs = newRow.querySelectorAll('.quantity, .weight, .techTime, .part-name');
             inputs.forEach(input => {
                 input.addEventListener('input', updateCalculations);
             });
-            
+
             // Add event listeners to print time inputs
             const timeInputs = newRow.querySelectorAll('.printHours, .printMinutes');
             timeInputs.forEach(input => {
@@ -543,32 +552,32 @@
                     updateCalculations();
                 });
             });
-            
+
             // Focus on the part name input for immediate editing
             const partNameInput = newRow.querySelector('.part-name');
             partNameInput.focus();
             partNameInput.select();
-            
+
             // Update calculations with new part
             updateCalculations();
         }
-        
+
         // Remove a part row
         function removePart(button) {
             const row = button.parentNode.parentNode;
             row.parentNode.removeChild(row);
             updateCalculations();
         }
-        
+
         // Show/hide loading overlay
         function showLoading() {
             document.getElementById('loadingOverlay').style.display = 'flex';
         }
-        
+
         function hideLoading() {
             document.getElementById('loadingOverlay').style.display = 'none';
         }
-        
+
         // Export data to CSV
         function exportToCSV() {
             // Get global parameters
@@ -578,7 +587,7 @@
             const printerCost = parseFloat(document.getElementById('printerCost').value);
             const laborRate = parseFloat(document.getElementById('laborRate').value);
             const taxRate = parseFloat(document.getElementById('taxRate').value);
-            
+
             // Create CSV header
             let csv = "3D Printing Cost Calculator\n\n";
             csv += "Global Parameters\n";
@@ -588,11 +597,11 @@
             csv += `Printer operating cost per hour ($),${printerCost}\n`;
             csv += `Technical work rate per hour ($),${laborRate}\n`;
             csv += `Tax rate (%),${taxRate}\n\n`;
-            
+
             // Parts information
             csv += "Parts Information\n";
             csv += "Part Name,Quantity,Material Weight (g),Print Time (hours:minutes),Technical Work Time (minutes)\n";
-            
+
             const rows = document.querySelectorAll('#partsTable tbody tr');
             rows.forEach(row => {
                 const partNameInput = row.querySelector('.part-name');
@@ -604,13 +613,13 @@
                 const printMinutes = printTimeMinutes % 60;
                 const printTimeFormatted = `${printHours}:${printMinutes.toString().padStart(2, '0')}`;
                 const techTime = parseFloat(row.querySelector('.techTime').value) || 0;
-                
+
                 csv += `${partName},${quantity},${weight},${printTimeFormatted},${techTime}\n`;
             });
-            
+
             csv += "\nCost Breakdown\n";
             csv += "Part Name,Quantity,Material Cost ($),Printer Cost ($),Labor Cost ($),Cost Per Unit ($),Total Cost ($)\n";
-            
+
             const costRows = document.querySelectorAll('#costTable tbody tr');
             costRows.forEach(row => {
                 const partName = row.cells[0].textContent;
@@ -620,23 +629,24 @@
                 const laborCost = row.cells[4].textContent;
                 const unitCost = row.cells[5].textContent;
                 const total = row.cells[6].textContent;
-                
+
                 csv += `${partName},${quantity},${materialCost},${printerCost},${laborCost},${unitCost},${total}\n`;
             });
-            
+
             csv += `Subtotal,,${document.getElementById('subtotalMaterial').textContent},${document.getElementById('subtotalPrinter').textContent},${document.getElementById('subtotalLabor').textContent},,${document.getElementById('subtotalCost').textContent}\n`;
             csv += `Tax,,,,,,${document.getElementById('taxTotal').textContent}\n`;
             csv += `Total with Tax,,,,,,${document.getElementById('grandTotal').textContent}\n`;
-            
+
             csv += "\nSummary\n";
             csv += `Total Manufacturing Cost ($),${document.getElementById('totalManufacturing').textContent}\n`;
             csv += `Tax Amount ($),${document.getElementById('taxAmount').textContent}\n`;
             csv += `Total Cost with Tax ($),${document.getElementById('totalCost').textContent}\n`;
             csv += `Total Weight (g),${document.getElementById('totalWeight').textContent}\n`;
             csv += `Total Print Time,${document.getElementById('totalPrintTime').textContent}\n`;
+            csv += `Total Technical Work,${document.getElementById('totalTechnicalWork').textContent}\n`; // Updated line
             csv += `Cost per Gram ($),${document.getElementById('costPerGram').textContent}\n`;
             csv += `Cost per Minute of Printing ($),${document.getElementById('costPerMinute').textContent}\n`;
-            
+
             // Create download link
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
@@ -648,25 +658,25 @@
             a.click();
             document.body.removeChild(a);
         }
-        
+
         // Export to PDF
         async function exportToPDF() {
             showLoading();
-            
+
             try {
                 const { jsPDF } = window.jspdf;
                 const element = document.getElementById('calculator-content');
-                
+
                 // Temporarily modify styles for better PDF capture
                 const originalStyle = element.style.cssText;
                 element.style.width = '210mm';
                 element.style.maxWidth = 'none';
                 element.style.padding = '10mm';
                 element.style.boxSizing = 'border-box';
-                
+
                 // Force a reflow
                 element.offsetHeight;
-                
+
                 // Create canvas from the element with better settings
                 const canvas = await html2canvas(element, {
                     scale: 1.5,
@@ -677,30 +687,30 @@
                     windowWidth: element.scrollWidth,
                     windowHeight: element.scrollHeight
                 });
-                
+
                 // Restore original styles
                 element.style.cssText = originalStyle;
-                
+
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jsPDF({
                     orientation: 'portrait',
                     unit: 'mm',
                     format: 'a4'
                 });
-                
+
                 // Calculate dimensions to fit the page
                 const pdfWidth = 210; // A4 width in mm
                 const pdfHeight = 297; // A4 height in mm
                 const imgWidth = pdfWidth;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
+
                 let heightLeft = imgHeight;
                 let position = 0;
-                
+
                 // Add the first page
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, Math.min(imgHeight, pdfHeight));
                 heightLeft -= pdfHeight;
-                
+
                 // Add additional pages if needed
                 while (heightLeft > 0) {
                     position = -pdfHeight * Math.ceil((imgHeight - heightLeft) / pdfHeight);
@@ -708,13 +718,13 @@
                     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pdfHeight;
                 }
-                
+
                 // Add timestamp to filename
                 const now = new Date();
                 const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
-                
+
                 pdf.save(`3D_Printing_Calculator_${timestamp}.pdf`);
-                
+
             } catch (error) {
                 console.error('Error generating PDF:', error);
                 alert('Error generating PDF. Please try again.');
@@ -722,24 +732,24 @@
                 hideLoading();
             }
         }
-        
+
         // Save as Image
         async function saveAsImage() {
             showLoading();
-            
+
             try {
                 const element = document.getElementById('calculator-content');
-                
+
                 // Store original scroll position
                 const originalScrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                
+
                 // Scroll to top to ensure full capture
                 window.scrollTo(0, 0);
-                
+
                 // Temporarily modify styles for better image capture
                 const originalStyle = element.style.cssText;
                 const originalBodyStyle = document.body.style.cssText;
-                
+
                 // Set fixed dimensions and positioning for capture
                 element.style.position = 'relative';
                 element.style.width = '900px';
@@ -750,18 +760,18 @@
                 element.style.boxSizing = 'border-box';
                 element.style.transform = 'none';
                 element.style.overflow = 'visible';
-                
+
                 // Ensure body doesn't interfere
                 document.body.style.overflow = 'visible';
                 document.body.style.height = 'auto';
                 document.body.style.minHeight = 'auto';
-                
+
                 // Wait for layout to settle
                 await new Promise(resolve => setTimeout(resolve, 100));
-                
+
                 // Force a reflow
                 element.offsetHeight;
-                
+
                 const canvas = await html2canvas(element, {
                     scale: 2,
                     useCORS: true,
@@ -776,40 +786,40 @@
                     x: 0,
                     y: 0
                 });
-                
+
                 // Restore original styles
                 element.style.cssText = originalStyle;
                 document.body.style.cssText = originalBodyStyle;
-                
+
                 // Restore scroll position
                 window.scrollTo(0, originalScrollTop);
-                
+
                 // Convert canvas to blob
                 canvas.toBlob(function(blob) {
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.style.display = 'none';
-                    
+
                     // Add timestamp to filename
                     const now = new Date();
                     const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
-                    
+
                     a.href = url;
                     a.download = `3D_Printing_Calculator_${timestamp}.png`;
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);
                     document.body.removeChild(a);
-                    
+
                     hideLoading();
                 }, 'image/png');
-                
+
             } catch (error) {
                 console.error('Error generating image:', error);
                 alert('Error generating image. Please try again.');
                 hideLoading();
             }
-        }
-    </script>
+    }
+</script>
 </body>
 </html>
